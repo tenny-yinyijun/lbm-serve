@@ -1,20 +1,19 @@
-"""Diffusion models including Stable Diffusion and noise schedulers."""
+"""Diffusion noise schedulers.
+
+TRIMMED FOR SERVING (lbm-serve). Upstream this module also exports `StableDiffusion`,
+`UNet`, `UNetDiffusers` and their blocks, and registers the "stable_diffusion" model. None
+is reachable from `diffusion_policy`, which only calls `create_noise_scheduler`.
+
+`diffusers` is NOT removable here: `FlowMatchingScheduler` lives in
+`noise_scheduler_diffusers`, which imports `DDPMScheduler` at module scope, and the
+open-world checkpoints set `use_flow_matching_scheduler: true`.
+"""
 
 from vla_foundry.models.diffusion.noise_scheduler import NoiseSchedulerDDPM
 from vla_foundry.models.diffusion.noise_scheduler_diffusers import (
     FlowMatchingScheduler,
     NoiseSchedulerDDPMDiffusers,
 )
-from vla_foundry.models.diffusion.stable_diffusion import StableDiffusion
-from vla_foundry.models.diffusion.unet import (
-    CrossAttentionBlock,
-    ResnetBlock,
-    SelfAttentionBlock,
-    UNet,
-)
-from vla_foundry.models.diffusion.unet_diffusers import UNetDiffusers
-from vla_foundry.models.registry import create_model, register_model
-from vla_foundry.params.model_params import ModelParams
 
 
 def create_noise_scheduler(model_params):
@@ -30,23 +29,9 @@ def create_noise_scheduler(model_params):
     return noise_scheduler
 
 
-@register_model("stable_diffusion")
-def create_stable_diffusion(model_params: ModelParams, load_pretrained: bool = True):
-    clip = create_model(model_params.clip, load_pretrained) if model_params.clip.hf_pretrained is not None else None
-    unet = UNetDiffusers(model_params.unet) if model_params.use_diffusers_unet else UNet(model_params.unet)
-    noise_scheduler = create_noise_scheduler(model_params)
-    return StableDiffusion(model_params, clip, unet, noise_scheduler)
-
-
 __all__ = [
     "NoiseSchedulerDDPM",
     "NoiseSchedulerDDPMDiffusers",
     "FlowMatchingScheduler",
-    "StableDiffusion",
-    "UNet",
-    "UNetDiffusers",
-    "ResnetBlock",
-    "SelfAttentionBlock",
-    "CrossAttentionBlock",
     "create_noise_scheduler",
 ]

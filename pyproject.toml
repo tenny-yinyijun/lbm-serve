@@ -2,39 +2,38 @@
 name = "lbm-serve"
 version = "0.1.0"
 description = "Serve a vla_foundry diffusion_policy (LBM) checkpoint over openpi's websocket protocol"
-requires-python = ">=3.12"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
 
-# Pins follow vla_foundry_internal's pyproject exactly where it pinned (torch, transformers,
-# torchvision, timm, webdataset), so a checkpoint trained there loads here bit-for-bit.
-# Dropped relative to that repo: ray, moto, rosbags, cuda-fps, matplotlib, protobuf, gitpython,
-# click, num2words, tifffile, accelerate, sentencepiece, wandb, ruff, pytest, nest-asyncio,
-# huggingface-hub (transitive), s3fs. None are reachable from the serving path.
+# Exactly the 17 third-party roots the serving path imports, nothing else.
+# Pins match vla_foundry_internal's pyproject where it pinned, so a checkpoint trained
+# there loads here bit-for-bit (verified: scripts/parity_check.sh).
+#
+# Dropped relative to vla_foundry_internal: ray, moto, rosbags, cuda-fps, matplotlib,
+# protobuf, gitpython, click, num2words, tifffile, accelerate, sentencepiece, wandb, ruff,
+# pytest, nest-asyncio, s3fs, timm, open-clip-torch, webdataset, tqdm.
 dependencies = [
-    # --- load-bearing for this checkpoint family (diffusion_policy + clip_backbone) ---
     "torch==2.7.0",
     "torchvision==0.22.0",
-    "transformers==4.57.3",   # CLIPImageProcessor / CLIP text+vision tower
+    "transformers==4.57.3",    # CLIP text+vision tower, CLIPImageProcessor
+    "diffusers>=0.34.0",       # FlowMatchingScheduler's module imports DDPMScheduler
     "numpy>=2.0",
-    "draccus>=0.11.5",        # the config system config.yaml is parsed by
-    "einops>=0.8.1",
-    "pyyaml>=6.0",
-    "websockets>=13.0",       # the openpi msgpack-over-websocket server
-    "msgpack>=1.0",
-    "pillow>=11.0",
-    "opencv-python",          # image resize in RoboticsProcessor
     "scipy>=1.15.3",
-    "tdigest-rs>=0.1.0",      # normalization statistics
-    "diffusers>=0.34.0",      # imported eagerly; unused at cfg.use_diffusers_scheduler=false
-    "tqdm>=4.67.1",
-
-    # --- pulled in only by registry side-effect imports; see README "Trimming further" ---
-    "timm==1.0.15",           # vit_hf / maniflow backbones
-    "open-clip-torch>=2.32.0",# the open_clip variant of the CLIP backbone
-    "webdataset==0.2.111",    # vla_foundry/data/utils.py
-    "boto3>=1.39.5",          # s3:// checkpoint paths in file_utils / aws
+    "einops>=0.8.1",
+    "draccus>=0.11.5",         # the config system config.yaml is parsed by
+    "pyyaml>=6.0",
+    "pillow>=11.0",
+    "opencv-python",           # image resize in RoboticsProcessor
+    "tdigest-rs>=0.1.0",       # normalization statistics
+    "websockets>=13.0",        # the openpi msgpack-over-websocket server
+    "msgpack>=1.0",
+    "fsspec>=2025.7.0",        # s3:// checkpoint/config reads in file_utils
+    "boto3>=1.39.5",
     "botocore>=1.39.17",
-    "fsspec>=2025.7.0",
 ]
+
+[project.scripts]
+lbm-serve = "vla_foundry.serving.lbm_policy_server:main"
 
 [build-system]
 requires = ["setuptools>=68"]
